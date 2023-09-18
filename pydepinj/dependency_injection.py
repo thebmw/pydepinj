@@ -14,11 +14,13 @@ class DependencyInjection:
         Simple Dependency Injection Framework for Python
     """
     _singleton_cache: dict[ABCMeta, any]
-    _scoped_types: dict[ABCMeta, any]
+    _singleton_types: dict[ABCMeta, ABCMeta]
+    _scoped_types: dict[ABCMeta, ABCMeta]
     _transient_types: dict[ABCMeta, ABCMeta]
     
     def __init__(self) -> None:
         self._singleton_cache = {}
+        self._singleton_types = {}
         self._scoped_types = {}
         self._transient_types = {}
 
@@ -77,10 +79,11 @@ class DependencyInjection:
         return inner
 
     def register_singleton(self, base_type: ABCMeta, implementation_type: ABCMeta):
-        self._singleton_cache[base_type] = implementation_type()
+        self._singleton_types[base_type] = implementation_type
 
     def register_singleton_instance(self, base_type: ABCMeta, instance: any):
         self._singleton_cache[base_type] = instance
+        self._singleton_types[base_type] = None
 
     def register_scoped(self, base_type: ABCMeta, implementation_type: ABCMeta):
         self._scoped_types[base_type] = implementation_type
@@ -105,6 +108,10 @@ class DependencyInjection:
             return self
         elif base_type in self._singleton_cache:
             return self._singleton_cache[base_type]
+        elif base_type in self._singleton_types:
+            i = self._singleton_types[base_type]()
+            self._singleton_cache[base_type] = i
+            return i
         elif base_type in self._scoped_types:
             return self._get_scoped_instance(base_type)
         elif base_type in self._transient_types:
