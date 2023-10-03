@@ -42,7 +42,7 @@ class DependencyInjection:
             _thread_local.di_scoped_cache = {}
             yield
         finally:
-            _thread_local.di_scoped_cache = None
+            del _thread_local.di_scoped_cache
 
     def inject(self, func: Callable):
         """Wraps functions/classes to auto inject dependencies"""

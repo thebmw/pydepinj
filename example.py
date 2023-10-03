@@ -34,6 +34,9 @@ class Foo(IFoo):
 
     def __init__(self, test: ITest = None) -> None:
         self.test = test
+
+    def __del__(self):
+        print('Foo Deleted')
     
     def do_test(self):
         self.test.test()
@@ -45,6 +48,6 @@ with di.di_scope():
 
     foo.do_test()
 
-foo: IFoo = di.get_instance(IFoo)
+foo: ITest = di.get_instance(ITest)
 
-foo.do_test()
+foo.test()
