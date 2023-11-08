@@ -1,5 +1,5 @@
 from typing import Type, Callable
-from abc import ABCMeta
+from abc import ABCMeta, ABC
 from functools import wraps
 from inspect import signature
 from threading import local
@@ -9,6 +9,19 @@ from pprint import pprint
 
 _thread_local = local()
 
+class ScopeHandler:
+    def setup_cache():
+        _thread_local.di_scoped_cache = {}
+
+    def get_cache() -> dict:
+        scoped_cache = getattr(_thread_local, 'di_scoped_cache', None)
+        return scoped_cache
+    
+    def del_cache():
+        scoped_cache = getattr(_thread_local, 'di_scoped_cache', None)
+        if scoped_cache is not None:
+            del _thread_local.di_scoped_cache
+
 class DependencyInjection:
     """
         Simple Dependency Injection Framework for Python
@@ -17,12 +30,17 @@ class DependencyInjection:
     _singleton_types: dict[ABCMeta, ABCMeta]
     _scoped_types: dict[ABCMeta, ABCMeta]
     _transient_types: dict[ABCMeta, ABCMeta]
+    _scope_cache: ScopeHandler
     
     def __init__(self) -> None:
         self._singleton_cache = {}
         self._singleton_types = {}
         self._scoped_types = {}
         self._transient_types = {}
+        self._scope_cache = ScopeHandler()
+
+    def set_scope_cache_handler(self, scope_cache: ScopeHandler):
+        self._scope_cache = scope_cache
 
     @contextmanager
     def di_scope(self):
@@ -35,14 +53,10 @@ class DependencyInjection:
                 foo.test()
         """
         try:
-            scoped_cache = getattr(_thread_local, 'di_scoped_cache', None)
-            if scoped_cache is not None:
-                # TODO something
-                pass
-            _thread_local.di_scoped_cache = {}
+            self._scope_cache.setup_cache()
             yield
         finally:
-            del _thread_local.di_scoped_cache
+            self._scope_cache.del_cache()
 
     def make_injected_call(self, func: Callable, *args, **kwargs):
         s = signature(func)
@@ -85,7 +99,7 @@ class DependencyInjection:
         self._transient_types[base_type] = implementation_type
 
     def _get_scoped_instance(self, base_type: ABCMeta):
-        scoped_cache = getattr(_thread_local, 'di_scoped_cache', None)
+        scoped_cache = self._scope_cache.get_cache()
         if scoped_cache is None:
             raise Exception('Can not use scoped types outside of scope')
         if base_type in scoped_cache:
