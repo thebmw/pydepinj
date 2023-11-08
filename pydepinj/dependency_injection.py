@@ -10,14 +10,14 @@ from pprint import pprint
 _thread_local = local()
 
 class ScopeHandler:
-    def setup_cache():
+    def setup_cache(self):
         _thread_local.di_scoped_cache = {}
 
-    def get_cache() -> dict:
+    def get_cache(self) -> dict:
         scoped_cache = getattr(_thread_local, 'di_scoped_cache', None)
         return scoped_cache
     
-    def del_cache():
+    def del_cache(self):
         scoped_cache = getattr(_thread_local, 'di_scoped_cache', None)
         if scoped_cache is not None:
             del _thread_local.di_scoped_cache
