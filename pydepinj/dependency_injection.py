@@ -44,38 +44,31 @@ class DependencyInjection:
         finally:
             del _thread_local.di_scoped_cache
 
+    def make_injected_call(self, func: Callable, *args, **kwargs):
+        s = signature(func)
+        new_kwargs = {
+            **kwargs
+        }
+        for name, info in s.parameters.items():
+            instance = self.get_instance(info.annotation)
+            if instance is not None:
+                new_kwargs[name] = instance
+
+        return func(*args, **new_kwargs)
+
     def inject(self, func: Callable):
         """Wraps functions/classes to auto inject dependencies"""
         @wraps(func)
         def inner(*args, **kwargs):
-            s = signature(func)
-            new_kwargs = {
-                **kwargs
-            }
-            for name, info in s.parameters.items():
-                instance = self.get_instance(info.annotation)
-                if instance is not None:
-                    new_kwargs[name] = instance
-
-            return func(*args, **new_kwargs)
+            return self.make_injected_call(func, *args, **kwargs)
         return inner
     
     def scoped_inject(self, func: Callable):
         """Wraps functions/classes to auto inject dependencies. Scope is auto generated for the functions this wraps."""
         @wraps(func)
         def inner(*args, **kwargs):
-            s = signature(func)
-            new_kwargs = {
-                **kwargs
-            }
-
             with self.di_scope():
-                for name, info in s.parameters.items():
-                    instance = self.get_instance(info.annotation)
-                    if instance is not None:
-                        new_kwargs[name] = instance
-
-                return func(*args, **new_kwargs)
+                return self.make_injected_call(func, *args, **kwargs)
         return inner
 
     def register_singleton(self, base_type: ABCMeta, implementation_type: ABCMeta):
