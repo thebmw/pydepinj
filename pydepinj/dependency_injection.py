@@ -31,6 +31,8 @@ class DependencyInjection:
     _scoped_types: dict[ABCMeta, ABCMeta]
     _transient_types: dict[ABCMeta, ABCMeta]
     _scope_cache: ScopeHandler
+
+    _locked: bool = False
     
     def __init__(self) -> None:
         self._singleton_cache = {}
@@ -86,16 +88,20 @@ class DependencyInjection:
         return inner
 
     def register_singleton(self, base_type: ABCMeta, implementation_type: ABCMeta):
+        assert not self._locked
         self._singleton_types[base_type] = implementation_type
 
     def register_singleton_instance(self, base_type: ABCMeta, instance: any):
+        assert not self._locked
         self._singleton_cache[base_type] = instance
         self._singleton_types[base_type] = None
 
     def register_scoped(self, base_type: ABCMeta, implementation_type: ABCMeta):
+        assert not self._locked
         self._scoped_types[base_type] = implementation_type
 
     def register_transient(self, base_type: ABCMeta, implementation_type: ABCMeta):
+        assert not self._locked
         self._transient_types[base_type] = implementation_type
 
     def _get_scoped_instance(self, base_type: ABCMeta):
@@ -124,3 +130,18 @@ class DependencyInjection:
         elif base_type in self._transient_types:
             return self._transient_types[base_type]()
         return None
+    
+    def validate_and_lock(self):
+        self._locked = True
+
+        for interface, impl in self._singleton_types.items():
+            s = signature(impl)
+            for name, info in s.parameters.items():
+                if info.annotation in self._scoped_types.keys() or info.annotation in self._transient_types.keys():
+                    raise Exception('Singleton Types can not depend on Scoped or Transient Types')
+                
+        for interface, impl in self._scoped_types.items():
+            s = signature(impl)
+            for name, info in s.parameters.items():
+                if info.annotation in self._transient_types.keys():
+                    raise Exception('Scoped Types can not depend on Transient Types')

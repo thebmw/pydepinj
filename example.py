@@ -43,6 +43,8 @@ class Foo(IFoo):
 
 di.register_scoped(IFoo, Foo)
 
+
+
 with di.di_scope():
     foo: IFoo = di.get_instance(IFoo)
 
