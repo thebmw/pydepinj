@@ -46,7 +46,7 @@ di.register_scoped(IFoo, Foo)
 
 
 with di.di_scope():
-    foo: IFoo = di.get_instance(IFoo)
+    foo = di.get_instance(IFoo)
 
     foo.do_test()
 

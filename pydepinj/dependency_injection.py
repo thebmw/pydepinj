@@ -1,4 +1,4 @@
-from typing import Type, Callable
+from typing import Type, Callable, TypeVar
 from abc import ABCMeta, ABC
 from functools import wraps
 from inspect import signature
@@ -6,6 +6,8 @@ from threading import local
 from contextlib import contextmanager
 
 from pprint import pprint
+
+T = TypeVar('T')
 
 _thread_local = local()
 
@@ -87,24 +89,24 @@ class DependencyInjection:
                 return self.make_injected_call(func, *args, **kwargs)
         return inner
 
-    def register_singleton(self, base_type: ABCMeta, implementation_type: ABCMeta):
+    def register_singleton(self, base_type: Type[T], implementation_type: Type[T]):
         assert not self._locked
         self._singleton_types[base_type] = implementation_type
 
-    def register_singleton_instance(self, base_type: ABCMeta, instance: any):
+    def register_singleton_instance(self, base_type: Type[T], instance: T):
         assert not self._locked
         self._singleton_cache[base_type] = instance
         self._singleton_types[base_type] = None
 
-    def register_scoped(self, base_type: ABCMeta, implementation_type: ABCMeta):
+    def register_scoped(self, base_type: Type[T], implementation_type: Type[T]):
         assert not self._locked
         self._scoped_types[base_type] = implementation_type
 
-    def register_transient(self, base_type: ABCMeta, implementation_type: ABCMeta):
+    def register_transient(self, base_type: Type[T], implementation_type: Type[T]):
         assert not self._locked
         self._transient_types[base_type] = implementation_type
 
-    def _get_scoped_instance(self, base_type: ABCMeta):
+    def _get_scoped_instance(self, base_type: Type[T]):
         scoped_cache = self._scope_cache.get_cache()
         if scoped_cache is None:
             raise Exception('Can not use scoped types outside of scope')
@@ -116,7 +118,7 @@ class DependencyInjection:
             return i
         return None
 
-    def get_instance(self, base_type: ABCMeta) -> any:
+    def get_instance(self, base_type: Type[T]) -> T:
         if base_type == DependencyInjection:
             return self
         elif base_type in self._singleton_cache:
