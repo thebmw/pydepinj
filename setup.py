@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name="pydepinj",
-      version="0.4.0",
+      version="0.4.1",
       description="A basic dependency injection framework",
       license='MIT',
       author="Brynn Warner",
